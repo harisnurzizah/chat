@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>harizzizah • Ruang Kita</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Quicksand', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh; overflow: hidden;
+    }
+    .app-container {
+      width: 100%; max-width: 450px; height: 100vh; max-height: 820px;
+      background: #ffffff; box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+      display: flex; flex-direction: column; position: relative;
+    }
+    @media (min-width: 480px) {
+      .app-container { height: 92vh; border-radius: 24px; overflow: hidden; }
+    }
+
+    /* Layar Login / PIN */
+    #login-screen {
+      position: absolute; inset: 0; background: #fff; z-index: 20;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 30px; text-align: center;
+    }
+    .logo-title { font-size: 28px; font-weight: 700; color: #e11d48; margin-bottom: 6px; letter-spacing: -0.5px; }
+    .logo-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+    .role-select { display: flex; gap: 12px; width: 100%; margin-bottom: 18px; }
+    .role-btn {
+      flex: 1; padding: 12px; border: 2px solid #f1f5f9; border-radius: 14px;
+      background: #f8fafc; font-weight: 600; color: #475569; cursor: pointer; transition: 0.2s;
+    }
+    .role-btn.active { border-color: #fb7185; background: #fff1f2; color: #e11d48; }
+    .pin-input {
+      width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 14px;
+      font-size: 18px; text-align: center; letter-spacing: 6px; margin-bottom: 16px; outline: none;
+    }
+    .pin-input:focus { border-color: #fb7185; }
+    .enter-btn {
+      width: 100%; padding: 14px; background: #e11d48; color: white; border: none;
+      border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s;
+    }
+    .enter-btn:hover { background: #be123c; }
+    .error-msg { color: #e11d48; font-size: 13px; margin-top: 10px; height: 18px; }
+
+    /* Header Chat */
+    header {
+      background: #fff1f2; padding: 16px 20px; border-bottom: 1px solid #ffe4e6;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header-info h1 { font-size: 20px; font-weight: 700; color: #e11d48; }
+    .header-info span { font-size: 12px; color: #881337; opacity: 0.8; }
+    .logout-btn {
+      background: none; border: 1px solid #fecdd3; color: #e11d48;
+      padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+
+    /* Area Pesan */
+    #chat-box {
+      flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+      background-color: #fffafb;
+    }
+    .msg {
+      max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14.5px;
+      line-height: 1.45; position: relative; word-wrap: break-word; animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .msg.me {
+      align-self: flex-end; background: #e11d48; color: #fff; border-bottom-right-radius: 4px;
+    }
+    .msg.partner {
+      align-self: flex-start; background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px;
+    }
+    .msg-sender { font-size: 11px; font-weight: 700; margin-bottom: 3px; opacity: 0.85; }
+    .msg-time { font-size: 10px; text-align: right; margin-top: 4px; opacity: 0.7; }
+
+    /* Input Chat */
+    .chat-input-area {
+      padding: 14px 20px; background: #ffffff; border-top: 1px solid #f1f5f9;
+      display: flex; gap: 10px; align-items: center;
+    }
+    .chat-input {
+      flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 20px;
+      font-size: 14px; outline: none; transition: 0.2s;
+    }
+    .chat-input:focus { border-color: #fb7185; }
+    .send-btn {
+      background: #e11d48; color: white; border: none; width: 44px; height: 44px;
+      border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center;
+      transition: 0.2s; font-size: 16px;
+    }
+    .send-btn:hover { background: #be123c; transform: scale(1.05); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- LAYAR LOGIN -->
+    <div id="login-screen">
+      <div class="logo-title">harizzizah</div>
+      <div class="logo-sub">Ruang Obrolan Khusus Kita 🤍</div>
+      
+      <div class="role-select">
+        <button class="role-btn active" onclick="selectRole('Sayangku')">Sayangku</button>
+        <button class="role-btn" onclick="selectRole('Cintaku')">Cintaku</button>
+      </div>
+
+      <input type="password" id="pin-input" class="pin-input" placeholder="PIN Rahasia" maxlength="6">
+      <button class="enter-btn" onclick="handleLogin()">Masuk Chat</button>
+      <div id="error-msg" class="error-msg"></div>
+    </div>
+
+    <!-- HEADER CHAT -->
+    <header>
+      <div class="header-info">
+        <h1 id="header-title">harizzizah</h1>
+        <span>● Berdua Saja</span>
+      </div>
+      <button class="logout-btn" onclick="location.reload()">Keluar</button>
+    </header>
+
+    <!-- KUMPULAN PESAN -->
+    <div id="chat-box"></div>
+
+    <!-- INPUT PESAN -->
+    <div class="chat-input-area">
+      <input type="text" id="message-input" class="chat-input" placeholder="Tulis pesan romantis..." onkeypress="handleKeyPress(event)">
+      <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- FIREBASE SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, push, set, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Konfigurasi Firebase Anda
+    const firebaseConfig = {
+      apiKey: "AIzaSyCi-FfYIPI1ohgjVnC-fTqpi3LmxNPEWi",
+      authDomain: "harizzizah-chat.firebaseapp.com",
+      databaseURL: "https://harizzizah-chat-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "harizzizah-chat",
+      storageBucket: "harizzizah-chat.fireappstore.app",
+      messagingSenderId: "1028876957844",
+      appId: "1:1028876957844:web:50dddd49855ee0ccd09c81",
+      measurementId: "G-SMJZ3Y4DBB"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let currentRole = "Sayangku";
+    const correctPin = "2000"; // PIN masuk (bisa Anda ganti sesuka hati)
+
+    window.selectRole = function(role) {
+      currentRole = role;
+      document.querySelectorAll('.role-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText === role);
+      });
+    }
+
+    window.handleLogin = function() {
+      const pin = document.getElementById('pin-input').value;
+      const errorMsg = document.getElementById('error-msg');
+      
+      if (pin === correctPin) {
+        document.getElementById('login-screen').classList.add('hidden');
+        loadMessages();
+      } else {
+        errorMsg.innerText = "PIN salah, sayang! Coba ingat-ingat lagi 😋";
+      }
+    }
+
+    window.handleKeyPress = function(e) {
+      if (e.key === 'Enter') sendMessage();
+    }
+
+    window.sendMessage = function() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const messagesRef = ref(db, 'messages');
+      const newMsgRef = push(messagesRef);
+      set(newMsgRef, {
+        sender: currentRole,
+        text: text,
+        time: timeStr
+      });
+
+      input.value = "";
+    }
+
+    function loadMessages() {
+      const chatBox = document.getElementById('chat-box');
+      const messagesRef = ref(db, 'messages');
+
+      onChildAdded(messagesRef, (snapshot) => {
+        const msg = snapshot.val();
+        const isMe = msg.sender === currentRole;
+
+        const div = document.createElement('div');
+        div.className = `msg ${isMe ? 'me' : 'partner'}`;
+        div.innerHTML = `
+          <div class="msg-sender">${msg.sender}</div>
+          <div>${msg.text}</div>
+          <div class="msg-time">${msg.time}</div>
+        `;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+    }
+  </script>
+</body>
+</html>
