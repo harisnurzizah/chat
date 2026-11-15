@@ -77,21 +77,37 @@
     }
     .msg-sender { font-size: 11px; font-weight: 700; margin-bottom: 3px; opacity: 0.85; }
     .msg-time { font-size: 10px; text-align: right; margin-top: 4px; opacity: 0.7; }
+    
+    .msg img {
+      max-width: 100%; border-radius: 10px; margin-top: 4px; cursor: pointer;
+    }
+    .msg audio {
+      max-width: 200px; height: 35px; margin-top: 4px;
+    }
 
     /* Input Chat */
     .chat-input-area {
-      padding: 14px 20px; background: #ffffff; border-top: 1px solid #f1f5f9;
-      display: flex; gap: 10px; align-items: center;
+      padding: 12px 16px; background: #ffffff; border-top: 1px solid #f1f5f9;
+      display: flex; gap: 8px; align-items: center;
     }
     .chat-input {
-      flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 20px;
+      flex: 1; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 20px;
       font-size: 14px; outline: none; transition: 0.2s;
     }
     .chat-input:focus { border-color: #fb7185; }
-    .send-btn {
-      background: #e11d48; color: white; border: none; width: 44px; height: 44px;
+    .action-btn {
+      background: #f1f5f9; color: #475569; border: none; width: 38px; height: 38px;
       border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center;
-      transition: 0.2s; font-size: 16px;
+      font-size: 16px; transition: 0.2s; flex-shrink: 0;
+    }
+    .action-btn:hover { background: #e2e8f0; }
+    .action-btn.recording { background: #fee2e2; color: #e11d48; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+    .send-btn {
+      background: #e11d48; color: white; border: none; width: 38px; height: 38px;
+      border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center;
+      transition: 0.2s; font-size: 15px; flex-shrink: 0;
     }
     .send-btn:hover { background: #be123c; transform: scale(1.05); }
     .hidden { display: none !important; }
@@ -103,11 +119,11 @@
     <!-- LAYAR LOGIN -->
     <div id="login-screen">
       <div class="logo-title">harizzizah</div>
-      <div class="logo-sub">Ruang Obrolan Khusus Kita 🤍</div>
+      <div class="logo-sub">Ruang Obrolan Hariz & Jia 🤍</div>
       
       <div class="role-select">
-        <button class="role-btn active" onclick="selectRole('Sayangku')">Sayangku</button>
-        <button class="role-btn" onclick="selectRole('Cintaku')">Cintaku</button>
+        <button class="role-btn active" onclick="selectRole('Hariz')">Hariz</button>
+        <button class="role-btn" onclick="selectRole('Jia')">Jia</button>
       </div>
 
       <input type="password" id="pin-input" class="pin-input" placeholder="PIN Rahasia" maxlength="6">
@@ -119,7 +135,7 @@
     <header>
       <div class="header-info">
         <h1 id="header-title">harizzizah</h1>
-        <span>● Berdua Saja</span>
+        <span>● Hariz & Jia</span>
       </div>
       <button class="logout-btn" onclick="location.reload()">Keluar</button>
     </header>
@@ -129,7 +145,11 @@
 
     <!-- INPUT PESAN -->
     <div class="chat-input-area">
-      <input type="text" id="message-input" class="chat-input" placeholder="Tulis pesan romantis..." onkeypress="handleKeyPress(event)">
+      <input type="file" id="image-file" accept="image/*" style="display:none" onchange="sendImage(event)">
+      <button class="action-btn" onclick="document.getElementById('image-file').click()" title="Kirim Gambar">📷</button>
+      <button id="mic-btn" class="action-btn" onclick="toggleRecordVoice()" title="Kirim Pesan Suara">🎤</button>
+      
+      <input type="text" id="message-input" class="chat-input" placeholder="Tulis pesan..." onkeypress="handleKeyPress(event)">
       <button class="send-btn" onclick="sendMessage()">➤</button>
     </div>
   </div>
@@ -139,7 +159,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, push, set, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Konfigurasi Firebase Anda
     const firebaseConfig = {
       apiKey: "AIzaSyCi-FfYIPI1ohgjVnC-fTqpi3LmxNPEWi",
       authDomain: "harizzizah-chat.firebaseapp.com",
@@ -154,8 +173,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let currentRole = "Sayangku";
-    const correctPin = "2000"; // PIN masuk (bisa Anda ganti sesuka hati)
+    let currentRole = "Hariz";
+    const correctPin = "1402"; 
 
     window.selectRole = function(role) {
       currentRole = role;
@@ -167,12 +186,11 @@
     window.handleLogin = function() {
       const pin = document.getElementById('pin-input').value;
       const errorMsg = document.getElementById('error-msg');
-      
       if (pin === correctPin) {
         document.getElementById('login-screen').classList.add('hidden');
         loadMessages();
       } else {
-        errorMsg.innerText = "PIN salah, sayang! Coba ingat-ingat lagi 😋";
+        errorMsg.innerText = "PIN salah! Coba ingat-ingat lagi 😋";
       }
     }
 
@@ -186,16 +204,66 @@
       if (!text) return;
 
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
       const messagesRef = ref(db, 'messages');
-      const newMsgRef = push(messagesRef);
-      set(newMsgRef, {
-        sender: currentRole,
-        text: text,
-        time: timeStr
-      });
-
+      push(messagesRef, { sender: currentRole, type: 'text', content: text, time: timeStr });
       input.value = "";
+    }
+
+    // Kirim Gambar (Convert ke Base64 agar muat di Realtime Database tanpa setup Storage tambahan)
+    window.sendImage = function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Image = e.target.result;
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messagesRef = ref(db, 'messages');
+        push(messagesRef, { sender: currentRole, type: 'image', content: base64Image, time: timeStr });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Rekam & Kirim Pesan Suara
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    window.toggleRecordVoice = async function() {
+      const micBtn = document.getElementById('mic-btn');
+      
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const base64Audio = e.target.result;
+              const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              const messagesRef = ref(db, 'messages');
+              push(messagesRef, { sender: currentRole, type: 'audio', content: base64Audio, time: timeStr });
+            };
+            reader.readAsDataURL(audioBlob);
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.classList.add('recording');
+          micBtn.title = "Klik untuk Berhenti & Kirim Suara";
+        } catch (err) {
+          alert("Izin miksrofon ditolak atau tidak didukung di perangkat ini!");
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        micBtn.title = "Kirim Pesan Suara";
+      }
     }
 
     function loadMessages() {
@@ -208,9 +276,19 @@
 
         const div = document.createElement('div');
         div.className = `msg ${isMe ? 'me' : 'partner'}`;
+        
+        let contentHtml = '';
+        if (msg.type === 'image') {
+          contentHtml = `<img src="${msg.content}" alt="Gambar">`;
+        } else if (msg.type === 'audio') {
+          contentHtml = `<audio controls src="${msg.content}"></audio>`;
+        } else {
+          contentHtml = `<div>${msg.content}</div>`;
+        }
+
         div.innerHTML = `
           <div class="msg-sender">${msg.sender}</div>
-          <div>${msg.text}</div>
+          ${contentHtml}
           <div class="msg-time">${msg.time}</div>
         `;
         chatBox.appendChild(div);
